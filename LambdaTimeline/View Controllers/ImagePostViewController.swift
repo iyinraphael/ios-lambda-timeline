@@ -8,52 +8,59 @@
 
 import UIKit
 import Photos
+import CoreImage
 
 class ImagePostViewController: ShiftableViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        
         setImageViewHeight(with: 1.0)
-        
         updateViews()
     }
     
+    private let filterBlur = CIFilter(name: "CIGaussianBlur")
+    private let filterColor = CIFilter(name: "CIColorControls")
+    private let filterCrop = CIFilter(name: "CICrop")
+    private let filterNoir = CIFilter(name: "CIPhotoEffectNoir")
+  
+    
+    @IBOutlet weak var brightnessSlider: UISlider!
+    
+    @IBOutlet weak var contrastSlider: UISlider!
+    
+    @IBOutlet weak var saturationSlider: UISlider!
+    
+    @IBOutlet weak var blurSlider: UISlider!
+    
+    @IBAction func cropButton(_ sender: Any) {
+    }
+    
+    
+    
+    
     func updateViews() {
-        
         guard let imageData = imageData,
-            let image = UIImage(data: imageData) else {
-                title = "New Post"
+            let image = UIImage(data: imageData) else { title = "New Post"
                 return
         }
-        
         title = post?.title
-        
         setImageViewHeight(with: image.ratio)
-        
         imageView.image = image
-        
         chooseImageButton.setTitle("", for: [])
     }
     
     private func presentImagePickerController() {
-        
         guard UIImagePickerController.isSourceTypeAvailable(.photoLibrary) else {
             presentInformationalAlertController(title: "Error", message: "The photo library is unavailable")
             return
         }
-        
         let imagePicker = UIImagePickerController()
-        
         imagePicker.delegate = self
-        
         imagePicker.sourceType = .photoLibrary
-
         present(imagePicker, animated: true, completion: nil)
     }
     
     @IBAction func createPost(_ sender: Any) {
-        
         view.endEditing(true)
         
         guard let imageData = imageView.image?.jpegData(compressionQuality: 0.1),
@@ -61,7 +68,6 @@ class ImagePostViewController: ShiftableViewController {
             presentInformationalAlertController(title: "Uh-oh", message: "Make sure that you add a photo and a caption before posting.")
             return
         }
-        
         postController.createPost(with: title, ofType: .image, mediaData: imageData, ratio: imageView.image?.ratio) { (success) in
             guard success else {
                 DispatchQueue.main.async {
@@ -69,7 +75,6 @@ class ImagePostViewController: ShiftableViewController {
                 }
                 return
             }
-            
             DispatchQueue.main.async {
                 self.navigationController?.popViewController(animated: true)
             }
@@ -77,25 +82,20 @@ class ImagePostViewController: ShiftableViewController {
     }
     
     @IBAction func chooseImage(_ sender: Any) {
-        
         let authorizationStatus = PHPhotoLibrary.authorizationStatus()
         
         switch authorizationStatus {
         case .authorized:
             presentImagePickerController()
         case .notDetermined:
-            
             PHPhotoLibrary.requestAuthorization { (status) in
-                
                 guard status == .authorized else {
                     NSLog("User did not authorize access to the photo library")
                     self.presentInformationalAlertController(title: "Error", message: "In order to access the photo library, you must allow this application access to it.")
                     return
                 }
-                
                 self.presentImagePickerController()
             }
-            
         case .denied:
             self.presentInformationalAlertController(title: "Error", message: "In order to access the photo library, you must allow this application access to it.")
         case .restricted:
@@ -106,12 +106,9 @@ class ImagePostViewController: ShiftableViewController {
     }
     
     func setImageViewHeight(with aspectRatio: CGFloat) {
-        
         imageHeightConstraint.constant = imageView.frame.size.width * aspectRatio
-        
         view.layoutSubviews()
     }
-    
     var postController: PostController!
     var post: Post?
     var imageData: Data?
@@ -126,15 +123,10 @@ class ImagePostViewController: ShiftableViewController {
 extension ImagePostViewController: UIImagePickerControllerDelegate, UINavigationControllerDelegate {
     
     func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
-
         chooseImageButton.setTitle("", for: [])
-        
         picker.dismiss(animated: true, completion: nil)
-        
         guard let image = info[UIImagePickerController.InfoKey.originalImage] as? UIImage else { return }
-        
         imageView.image = image
-        
         setImageViewHeight(with: image.ratio)
     }
     
